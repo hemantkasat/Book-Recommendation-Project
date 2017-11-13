@@ -13,7 +13,7 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.metrics import confusion_matrix
 
 
-with open('./ProductDetails/ProductDetails.json',"r") as f:
+with open('./Dataset/ProductDetails.json',"r") as f:
 	ProductDetail = json.load(f)
 
 

@@ -2,14 +2,14 @@ import json
 import sys
 import os
 
-f = open('../amazon-meta.txt')
+f = open('./Dataset/amazon-meta.txt')
 
 data = f.read()
 
 pitems = data.split('\r\n\r\n')
 
 
-with open('./ProductDetails/ProductDetails.json',"r") as f:
+with open('./Dataset/ProductDetails.json',"r") as f:
 	ProductDetail = json.load(f)
 
 

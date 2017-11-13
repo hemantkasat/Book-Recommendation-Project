@@ -25,7 +25,7 @@ def getGraphs(category):
 	with open('./metadatabycategory/' + category + '.json') as f:
 		Books = json.load(f)
 
-	with open('./ProductDetails/ProductDetails.json',"r") as f:
+	with open('./Dataset/ProductDetails.json',"r") as f:
 		ProductDetail = json.load(f)
 
 
@@ -39,8 +39,8 @@ def getGraphs(category):
 	Descriptions = []
 	titles = []
 
-	for item in Books:
-		it = item.split('\r\n')
+	for items in Books:
+		it = items.split('\r\n')
 		for i in it:
 			if "ASIN:" in i:
 				item =  i.split(':')[1].strip()
@@ -68,33 +68,69 @@ def getGraphs(category):
 	item_item = set()
 	ground_item_item = set()
 
-	
 	vectorizer  = TfidfVectorizer()
 	tfidf = vectorizer.fit_transform(Descriptions)
 	tfidf = tfidf.toarray()
 	
-	count = 0
-	item_item = []
 
-	with open('./Graphs/'  + category + '/item_item.csv',"a") as f:
+
+	for items in Books:
+		try:
+			asin = items.split('\r\n')[1].strip().split(':')[1].strip()
+			buyafterviewing = ProductDetail[asin]['related']['also_bought']
+			buyafterviewing.append(asin)
+			a = itertools.combinations(buyafterviewing,2)
+			for x in a:			
+				try:
+					node1 = nodemap[x[0]]
+					node2 = nodemap[x[1]]
+					similarity = gettitlesimilarity(tfidf,node1,node2)
+					print len(item_item),similarity
+					# print node1,node2
+					if(node1>node2):
+						# print "sakjdf;kaljlfjjafjkj;jfakf;jlk"
+						item_item.add((node1,node2))
+						# print len(item_item)
+					else:
+						item_item.add((node2,node1))
+					itemgraphnodes.add(node1)
+					itemgraphnodes.add(node2)
+				except:
+					pass 
+		except:
+			pass
+	
+	count = 0
+
+
+
+
+	print len(item_item)
+
+	with open('./Graphs/'  + category + '/item_item.csv',"w") as f:
 		writer = csv.writer(f,delimiter=' ')
-		for key in cust_item.keys():
-			itemlist = cust_item[key]
-			if len(itemlist) > 50:
-				itemlist = random.sample(itemlist,50)
-			a = itertools.combinations(itemlist,2)			
-			for x in a:
-				similarity = gettitlesimilarity(tfidf,nodemap[x[0]],nodemap[x[1]])
-				if((similarity>0.5)&(similarity<0.9)):
-					if(nodemap[x[0]]!=nodemap[x[1]]):
-						print titles[nodemap[x[0]]],titles[nodemap[x[1]]],'\n',similarity,'\n'
-						if(nodemap[x[0]]>nodemap[x[1]]):
-							writer.writerow([nodemap[x[0]],nodemap[x[1]]])
-						else:	
-							writer.writerow([nodemap[x[1]],nodemap[x[0]]])
-				        itemgraphnodes.add(nodemap[x[0]])
-				        itemgraphnodes.add(nodemap[x[1]])
-		print len(itemgraphnodes)
+		writer.writerows(list(item_item))
+
+
+	# with open('./Graphs/'  + category + '/item_item.csv',"a") as f:
+	# 	writer = csv.writer(f,delimiter=' ')
+	# 	for key in cust_item.keys():
+	# 		itemlist = cust_item[key]
+	# 		if len(itemlist) > 50:
+	# 			itemlist = random.sample(itemlist,50)
+	# 		a = itertools.combinations(itemlist,2)			
+	# 		for x in a:
+	# 			similarity = gettitlesimilarity(tfidf,nodemap[x[0]],nodemap[x[1]])
+	# 			if((similarity>0.5)&(similarity<0.9)):
+	# 				if(nodemap[x[0]]!=nodemap[x[1]]):
+	# 					print titles[nodemap[x[0]]],titles[nodemap[x[1]]],'\n',similarity,'\n'
+	# 					if(nodemap[x[0]]>nodemap[x[1]]):
+	# 						writer.writerow([nodemap[x[0]],nodemap[x[1]]])
+	# 					else:	
+	# 						writer.writerow([nodemap[x[1]],nodemap[x[0]]])
+	# 			        itemgraphnodes.add(nodemap[x[0]])
+	# 			        itemgraphnodes.add(nodemap[x[1]])
+	# 	print len(itemgraphnodes)
 
 	G = nx.Graph()
 	for key in item_simitem.keys():
@@ -124,9 +160,13 @@ def getGraphs(category):
 		json.dump(nodemap,f)
 
 
-	a = list(itertools.combinations(G.nodes(),2))
+	a = itertools.combinations(G.nodes(),2)
 
 	groundgraph = []
+
+	numberofone = 0
+	numberofzero = 0
+	numberofneg = 0
 	
 	with open('./Graphs/'  + category + '/ground_item_item.csv',"a") as f:
 		writer = csv.writer(f,delimiter=' ')
@@ -134,13 +174,16 @@ def getGraphs(category):
 			try:
 				pathlength = nx.shortest_path_length(G,source=item[0],target=item[1])
 				if(pathlength==1):
+					numberofone = numberofone + 1
 					writer.writerow([item[0],item[1],1])
 				else:
+					numberofzero = numberofzero + 1
 					writer.writerow([item[0],item[1],0])
 			except:
+					numberofneg = numberofneg + 1
 					writer.writerow([item[0],item[1],-1])
 
-	
+	print "ONES: ",numberofone," ZEROS: ",numberofzero," NEGATIVES: ",numberofneg
 if __name__ == '__main__':
 	category = sys.argv[1]
 	print "category is = ",category
